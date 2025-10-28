@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  avalanche:
+    image: avaplatform/avalanchego:v1.11.3
+    container_name: avalanche-local
+    ports:
+      - "9650:9650"
+      - "9651:9651"
+    command: >
+      /avalanchego/build/avalanchego
+      --network-id=local
+      --http-host=0.0.0.0
+      --http-port=9650
+      --staking-enabled=false
+      --snow-sample-size=1
+      --snow-quorum-size=1
+    volumes:
+      - avalanche-data:/root/.avalanchego
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9650/ext/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  avalanche-data:
+    driver: local
+

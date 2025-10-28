@@ -3,20 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { isAddress, isHex } from "viem";
-import { hardhat } from "viem/chains";
-import { usePublicClient } from "wagmi";
+import { useWdkProvider } from "~~/hooks/scaffold-eth";
 
 export const SearchBar = () => {
   const [searchInput, setSearchInput] = useState("");
   const router = useRouter();
-
-  const client = usePublicClient({ chainId: hardhat.id });
+  const provider = useWdkProvider();
 
   const handleSearch = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isHex(searchInput)) {
       try {
-        const tx = await client?.getTransaction({ hash: searchInput });
+        const tx = await provider?.getTransaction(searchInput);
         if (tx) {
           router.push(`/blockexplorer/transaction/${searchInput}`);
           return;

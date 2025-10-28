@@ -4,10 +4,10 @@ import React, { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { hardhat } from "viem/chains";
 import { Bars3Icon, BugAntIcon } from "@heroicons/react/24/outline";
-import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
-import { useOutsideClick, useTargetNetwork } from "~~/hooks/scaffold-eth";
+import { WdkConnectButton } from "~~/components/scaffold-eth/WdkConnectButton";
+import { useOutsideClick } from "~~/hooks/scaffold-eth";
+import { useWdk } from "~~/contexts/WdkContext";
 
 type HeaderMenuLink = {
   label: string;
@@ -61,8 +61,8 @@ export const HeaderMenuLinks = () => {
  * Site header
  */
 export const Header = () => {
-  const { targetNetwork } = useTargetNetwork();
-  const isLocalNetwork = targetNetwork.id === hardhat.id;
+  const { currentNetwork } = useWdk();
+  const isLocalNetwork = currentNetwork.id === "local";
 
   const burgerMenuRef = useRef<HTMLDetailsElement>(null);
   useOutsideClick(burgerMenuRef, () => {
@@ -90,8 +90,8 @@ export const Header = () => {
             <Image alt="SE2 logo" className="cursor-pointer" fill src="/logo.svg" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold leading-tight">Scaffold-ETH</span>
-            <span className="text-xs">Ethereum dev stack</span>
+            <span className="font-bold leading-tight">WDK Avalanche</span>
+            <span className="text-xs">Powered by Scaffold-ETH 2</span>
           </div>
         </Link>
         <ul className="hidden lg:flex lg:flex-nowrap menu menu-horizontal px-1 gap-2">
@@ -99,8 +99,7 @@ export const Header = () => {
         </ul>
       </div>
       <div className="navbar-end grow mr-4">
-        <RainbowKitCustomConnectButton />
-        {isLocalNetwork && <FaucetButton />}
+        <WdkConnectButton />
       </div>
     </div>
   );

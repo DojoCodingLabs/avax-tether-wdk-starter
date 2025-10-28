@@ -3,8 +3,6 @@
 import { AddressCopyIcon } from "./AddressCopyIcon";
 import { AddressLinkWrapper } from "./AddressLinkWrapper";
 import { Address as AddressType, getAddress, isAddress } from "viem";
-import { normalize } from "viem/ens";
-import { useEnsAvatar, useEnsName } from "wagmi";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { getBlockExplorerAddressLink } from "~~/utils/scaffold-eth";
@@ -86,21 +84,10 @@ export const Address = ({
 
   const { targetNetwork } = useTargetNetwork();
 
-  const { data: ens, isLoading: isEnsNameLoading } = useEnsName({
-    address: checkSumAddress,
-    chainId: 1,
-    query: {
-      enabled: isAddress(checkSumAddress ?? ""),
-    },
-  });
-  const { data: ensAvatar } = useEnsAvatar({
-    name: ens ? normalize(ens) : undefined,
-    chainId: 1,
-    query: {
-      enabled: Boolean(ens),
-      gcTime: 30_000,
-    },
-  });
+  // ENS is not available on Avalanche, so we skip ENS resolution
+  const ens = null;
+  const ensAvatar = null;
+  const isEnsNameLoading = false;
 
   const shortAddress = checkSumAddress?.slice(0, 6) + "..." + checkSumAddress?.slice(-4);
   const displayAddress = format === "long" ? checkSumAddress : shortAddress;

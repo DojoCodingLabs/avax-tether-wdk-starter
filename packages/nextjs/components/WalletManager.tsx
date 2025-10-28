@@ -1,313 +1,455 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import WDK from "@tetherto/wdk";
-import WalletManagerEvm from "@tetherto/wdk-wallet-evm";
+import { useState } from "react";
+import { useWdk } from "~~/contexts/WdkContext";
+import { AVALANCHE_NETWORKS, NetworkId } from "~~/config/networks";
+import { Address } from "~~/components/scaffold-eth";
+import { Balance } from "~~/components/scaffold-eth";
 
-// Types for wallet management
-export interface WalletAccount {
-  getAddress(): Promise<string>;
-  getBalance(): Promise<bigint>;
-  sendTransaction(params: {
-    to: string;
-    value: bigint;
-  }): Promise<{ hash: string }>;
-  quoteSendTransaction(params: {
-    to: string;
-    value: bigint;
-  }): Promise<{ fee: bigint }>;
-}
+/**
+ * Modern Wallet Manager Component
+ * Handles wallet creation, import, network switching, and seed phrase management
+ */
+export function WalletManager() {
+  const {
+    isInitialized,
+    isLocked,
+    address,
+    balance,
+    currentNetwork,
+    isLoading,
+    isSwitchingNetwork,
+    error,
+    createWallet,
+    importWallet,
+    unlockWallet,
+    lockWallet,
+    disconnectWallet,
+    exportSeedPhrase,
+    switchNetwork,
+  } = useWdk();
 
-export interface WalletManager {
-  getAccount(chain: string, index: number): Promise<WalletAccount>;
-}
+  const [view, setView] = useState<"locked" | "unlocked" | "create" | "import">("locked");
+  const [importSeedInput, setImportSeedInput] = useState("");
+  const [newSeedPhrase, setNewSeedPhrase] = useState<string | null>(null);
+  const [seedSaved, setSeedSaved] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportedSeed, setExportedSeed] = useState<string | null>(null);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
-export interface WDKInstance {
-  registerWallet(chain: string, walletManager: any, config: any): WDKInstance;
-  getAccount(chain: string, index: number): Promise<WalletAccount>;
-}
-
-export interface WalletState {
-  seedPhrase: string | null;
-  isInitialized: boolean;
-  accounts: {
-    avalanche: WalletAccount | null;
-  };
-  addresses: {
-    avalanche: string | null;
-  };
-  balances: {
-    avalanche: bigint | null;
-  };
-}
-
-export interface WalletContextType extends WalletState {
-  initializeWallet: (seedPhrase?: string) => Promise<void>;
-  generateNewSeedPhrase: () => string;
-  refreshBalances: () => Promise<void>;
-  sendTransaction: (chain: string, to: string, value: bigint) => Promise<{ hash: string }>;
-  estimateTransactionFee: (chain: string, to: string, value: bigint) => Promise<bigint>;
-}
-
-// Default wallet state
-const defaultWalletState: WalletState = {
-  seedPhrase: null,
-  isInitialized: false,
-  accounts: {
-    avalanche: null,
-  },
-  addresses: {
-    avalanche: null,
-  },
-  balances: {
-    avalanche: null,
-  },
-};
-
-// Create context
-const WalletContext = createContext<WalletContextType | undefined>(undefined);
-
-// Singleton wallet manager class
-class WalletManagerSingleton {
-  private static instance: WalletManagerSingleton;
-  private wdkInstance: WDKInstance | null = null;
-  private seedPhrase: string | null = null;
-  private isInitialized = false;
-
-  private constructor() {}
-
-  public static getInstance(): WalletManagerSingleton {
-    if (!WalletManagerSingleton.instance) {
-      WalletManagerSingleton.instance = new WalletManagerSingleton();
-    }
-    return WalletManagerSingleton.instance;
+  // Determine initial view
+  if (!isInitialized && !isLocked && view === "locked") {
+    // No wallet exists, show create/import options
+  } else if (isLocked && view === "locked") {
+    // Wallet exists but locked
+  } else if (isInitialized && !isLocked && view === "locked") {
+    setView("unlocked");
   }
 
-  public async initialize(seedPhrase?: string): Promise<void> {
-    if (this.isInitialized) {
+  const handleCreateWallet = async () => {
+    try {
+      const seed = await createWallet();
+      setNewSeedPhrase(seed);
+      setSeedSaved(false);
+      // Don't switch view yet - show seed phrase first
+    } catch (error) {
+      console.error("Failed to create wallet:", error);
+    }
+  };
+
+  const handleSeedSaved = () => {
+    setSeedSaved(true);
+    setNewSeedPhrase(null);
+    setView("unlocked");
+  };
+
+  const handleImportWallet = async () => {
+    if (!importSeedInput.trim()) {
+      alert("Please enter a valid seed phrase");
       return;
     }
-
+    
     try {
-      // Generate or use provided seed phrase
-      this.seedPhrase = seedPhrase || WDK.getRandomSeedPhrase();
-
-      // Create WDK instance and register Avalanche testnet wallet
-      this.wdkInstance = new WDK(this.seedPhrase)
-        .registerWallet("avalanche", WalletManagerEvm, {
-          provider: "https://api.avax-test.network/ext/bc/C/rpc",
-        });
-
-      this.isInitialized = true;
+      await importWallet(importSeedInput.trim());
+      setImportSeedInput("");
+      setView("unlocked");
     } catch (error) {
-      console.error("Failed to initialize wallet:", error);
-      throw error;
+      console.error("Failed to import wallet:", error);
     }
-  }
+  };
 
-  public getSeedPhrase(): string | null {
-    return this.seedPhrase;
-  }
-
-  public getIsInitialized(): boolean {
-    return this.isInitialized;
-  }
-
-  public async getAccount(chain: string, index: number = 0): Promise<WalletAccount> {
-    if (!this.wdkInstance) {
-      throw new Error("Wallet not initialized");
+  const handleUnlock = async () => {
+    try {
+      await unlockWallet();
+      setView("unlocked");
+    } catch (error) {
+      console.error("Failed to unlock wallet:", error);
     }
-    return await this.wdkInstance.getAccount(chain, index);
+  };
+
+  const handleLock = async () => {
+    await lockWallet();
+    setView("locked");
+  };
+
+  const handleExportSeed = async () => {
+    try {
+      const seed = await exportSeedPhrase();
+      setExportedSeed(seed);
+    } catch (error) {
+      console.error("Failed to export seed:", error);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    await disconnectWallet();
+    setShowDisconnectModal(false);
+    setView("create");
+  };
+
+  const handleNetworkSwitch = async (networkId: NetworkId) => {
+    try {
+      await switchNetwork(networkId);
+    } catch (error) {
+      console.error("Failed to switch network:", error);
+    }
+  };
+
+  // Show new seed phrase after creation
+  if (newSeedPhrase && !seedSaved) {
+    return (
+      <div className="card w-full max-w-2xl bg-base-100 shadow-xl mx-auto">
+        <div className="card-body">
+          <h2 className="card-title text-2xl">🔐 Save Your Seed Phrase</h2>
+          
+          <div className="alert alert-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h3 className="font-bold">Important: Write this down!</h3>
+              <div className="text-sm">This seed phrase is the ONLY way to recover your wallet. Store it securely offline.</div>
+            </div>
+          </div>
+
+          <div className="bg-base-200 p-6 rounded-lg my-4">
+            <pre className="text-center text-lg font-mono whitespace-pre-wrap break-words">
+              {newSeedPhrase}
+            </pre>
+          </div>
+
+          <div className="form-control">
+            <label className="label cursor-pointer">
+              <span className="label-text">I have securely saved my seed phrase</span>
+              <input 
+                type="checkbox" 
+                className="checkbox checkbox-primary" 
+                checked={seedSaved}
+                onChange={(e) => setSeedSaved(e.target.checked)}
+              />
+            </label>
+          </div>
+
+          <div className="card-actions justify-end mt-4">
+            <button 
+              className="btn btn-primary" 
+              onClick={handleSeedSaved}
+              disabled={!seedSaved}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  public async getAddress(chain: string, index: number = 0): Promise<string> {
-    const account = await this.getAccount(chain, index);
-    return await account.getAddress();
+  // Locked state - wallet exists but locked
+  if (isLocked && !isInitialized) {
+    return (
+      <div className="card w-full max-w-md bg-base-100 shadow-xl mx-auto">
+        <div className="card-body items-center text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="card-title text-2xl">Wallet Locked</h2>
+          <p className="text-base-content/70">
+            Network: {currentNetwork.displayName}
+          </p>
+          {error && (
+            <div className="alert alert-error">
+              <span>{error}</span>
+            </div>
+          )}
+          <div className="card-actions mt-4">
+            <button 
+              className="btn btn-primary" 
+              onClick={handleUnlock}
+              disabled={isLoading}
+            >
+              {isLoading ? "Unlocking..." : "Unlock Wallet"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  public async getBalance(chain: string, index: number = 0): Promise<bigint> {
-    const account = await this.getAccount(chain, index);
-    return await account.getBalance();
+  // Create/Import view - no wallet exists
+  if (!isInitialized && (view === "create" || view === "import")) {
+    if (view === "import") {
+      return (
+        <div className="card w-full max-w-md bg-base-100 shadow-xl mx-auto">
+          <div className="card-body">
+            <h2 className="card-title text-2xl">Import Wallet</h2>
+            <p className="text-sm text-base-content/70 mb-4">
+              Enter your 12 or 24 word seed phrase to restore your wallet.
+            </p>
+            
+            {error && (
+              <div className="alert alert-error mb-4">
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Seed Phrase</span>
+              </label>
+              <textarea
+                className="textarea textarea-bordered h-32"
+                placeholder="word1 word2 word3 ..."
+                value={importSeedInput}
+                onChange={(e) => setImportSeedInput(e.target.value)}
+              />
+            </div>
+
+            <div className="card-actions justify-between mt-6">
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => setView("create")}
+              >
+                Back
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleImportWallet}
+                disabled={isLoading || !importSeedInput.trim()}
+              >
+                {isLoading ? "Importing..." : "Import Wallet"}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="card w-full max-w-md bg-base-100 shadow-xl mx-auto">
+        <div className="card-body items-center text-center">
+          <div className="text-6xl mb-4">🌐</div>
+          <h2 className="card-title text-2xl">Welcome to WDK Wallet</h2>
+          <p className="text-base-content/70 mb-6">
+            Create a new wallet or import an existing one to get started on Avalanche.
+          </p>
+
+          {error && (
+            <div className="alert alert-error w-full mb-4">
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="card-actions flex-col w-full gap-3">
+            <button 
+              className="btn btn-primary w-full" 
+              onClick={handleCreateWallet}
+              disabled={isLoading}
+            >
+              {isLoading ? "Creating..." : "Create New Wallet"}
+            </button>
+            <button 
+              className="btn btn-outline w-full" 
+              onClick={() => setView("import")}
+            >
+              Import Existing Wallet
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  public async sendTransaction(
-    chain: string,
-    to: string,
-    value: bigint,
-    index: number = 0
-  ): Promise<{ hash: string }> {
-    const account = await this.getAccount(chain, index);
-    return await account.sendTransaction({ to, value });
-  }
+  // Unlocked state - fully functional wallet
+  return (
+    <div className="card w-full max-w-2xl bg-base-100 shadow-xl mx-auto">
+      <div className="card-body">
+        <h2 className="card-title text-2xl flex items-center justify-between">
+          <span>🔓 Wallet</span>
+          <div className="badge badge-success">Connected</div>
+        </h2>
 
-  public async estimateTransactionFee(
-    chain: string,
-    to: string,
-    value: bigint,
-    index: number = 0
-  ): Promise<bigint> {
-    const account = await this.getAccount(chain, index);
-    const quote = await account.quoteSendTransaction({ to, value });
-    return quote.fee;
-  }
+        {error && (
+          <div className="alert alert-error">
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Network Selector */}
+        <div className="form-control w-full">
+          <label className="label">
+            <span className="label-text font-semibold">Network</span>
+          </label>
+          <select 
+            className="select select-bordered w-full"
+            value={currentNetwork.id}
+            onChange={(e) => handleNetworkSwitch(e.target.value as NetworkId)}
+            disabled={isSwitchingNetwork}
+          >
+            {Object.values(AVALANCHE_NETWORKS).map((network) => (
+              <option key={network.id} value={network.id}>
+                {network.displayName} (Chain ID: {network.chainId})
+              </option>
+            ))}
+          </select>
+          {isSwitchingNetwork && (
+            <label className="label">
+              <span className="label-text-alt text-info">Switching network...</span>
+            </label>
+          )}
+        </div>
+
+        {/* Address Display */}
+        <div className="form-control w-full mt-4">
+          <label className="label">
+            <span className="label-text font-semibold">Address</span>
+          </label>
+          <div className="flex items-center gap-2">
+            {address && <Address address={address as `0x${string}`} />}
+          </div>
+        </div>
+
+        {/* Balance Display */}
+        <div className="form-control w-full mt-2">
+          <label className="label">
+            <span className="label-text font-semibold">Balance</span>
+          </label>
+          <div className="text-2xl font-bold">
+            {address && <Balance address={address as `0x${string}`} />}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="card-actions justify-end mt-6 gap-2">
+          <button 
+            className="btn btn-sm btn-outline"
+            onClick={() => setShowExportModal(true)}
+          >
+            Export Seed
+          </button>
+          <button 
+            className="btn btn-sm btn-warning"
+            onClick={handleLock}
+          >
+            Lock Wallet
+          </button>
+          <button 
+            className="btn btn-sm btn-error"
+            onClick={() => setShowDisconnectModal(true)}
+          >
+            Disconnect
+          </button>
+        </div>
+      </div>
+
+      {/* Export Seed Modal */}
+      {showExportModal && (
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">⚠️ Export Seed Phrase</h3>
+            {!exportedSeed ? (
+              <>
+                <p className="py-4">
+                  Are you sure you want to export your seed phrase? Make sure no one is watching your screen.
+                </p>
+                <div className="modal-action">
+                  <button 
+                    className="btn btn-ghost" 
+                    onClick={() => setShowExportModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn btn-warning" 
+                    onClick={handleExportSeed}
+                  >
+                    Show Seed Phrase
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-base-200 p-4 rounded-lg my-4">
+                  <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                    {exportedSeed}
+                  </pre>
+                </div>
+                <div className="alert alert-warning mt-4">
+                  <span className="text-xs">Never share this seed phrase with anyone!</span>
+                </div>
+                <div className="modal-action">
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      setExportedSeed(null);
+                      setShowExportModal(false);
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => {
+              setExportedSeed(null);
+              setShowExportModal(false);
+            }}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {/* Disconnect Confirmation Modal */}
+      {showDisconnectModal && (
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">⚠️ Disconnect Wallet</h3>
+            <p className="py-4">
+              This will remove your wallet from this device. Make sure you have your seed phrase backed up!
+            </p>
+            <div className="alert alert-error">
+              <span className="text-sm">This action cannot be undone without your seed phrase.</span>
+            </div>
+            <div className="modal-action">
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => setShowDisconnectModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-error" 
+                onClick={handleDisconnect}
+              >
+                Disconnect
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setShowDisconnectModal(false)}>close</button>
+          </form>
+        </dialog>
+      )}
+    </div>
+  );
 }
 
-// Wallet Provider Component
-export const WalletProvider = ({ children }: { children: ReactNode }) => {
-  const [walletState, setWalletState] = useState<WalletState>(defaultWalletState);
-  const walletManager = WalletManagerSingleton.getInstance();
-
-  const initializeWallet = async (seedPhrase?: string) => {
-    try {
-      await walletManager.initialize(seedPhrase);
-      
-      // Get accounts for Avalanche
-      const accounts = {
-        avalanche: await walletManager.getAccount("avalanche", 0),
-      };
-
-      // Get addresses for Avalanche
-      const addresses = {
-        avalanche: await walletManager.getAddress("avalanche", 0),
-      };
-
-      // Get balances for Avalanche
-      const balances = {
-        avalanche: await walletManager.getBalance("avalanche", 0),
-      };
-
-      setWalletState({
-        seedPhrase: walletManager.getSeedPhrase(),
-        isInitialized: true,
-        accounts,
-        addresses,
-        balances,
-      });
-    } catch (error) {
-      console.error("Failed to initialize wallet:", error);
-      throw error;
-    }
-  };
-
-  const generateNewSeedPhrase = (): string => {
-    // This will be handled by the WDK when initializing
-    return "Generate new seed phrase";
-  };
-
-  const refreshBalances = async () => {
-    if (!walletState.isInitialized) return;
-
-    try {
-      const balances = {
-        avalanche: await walletManager.getBalance("avalanche", 0),
-      };
-
-      setWalletState(prev => ({
-        ...prev,
-        balances,
-      }));
-    } catch (error) {
-      console.error("Failed to refresh balances:", error);
-    }
-  };
-
-  const sendTransaction = async (
-    chain: string,
-    to: string,
-    value: bigint
-  ): Promise<{ hash: string }> => {
-    if (!walletState.isInitialized) {
-      throw new Error("Wallet not initialized");
-    }
-
-    try {
-      const result = await walletManager.sendTransaction(chain, to, value);
-      
-      // Refresh balances after transaction
-      await refreshBalances();
-      
-      return result;
-    } catch (error) {
-      console.error("Failed to send transaction:", error);
-      throw error;
-    }
-  };
-
-  const estimateTransactionFee = async (
-    chain: string,
-    to: string,
-    value: bigint
-  ): Promise<bigint> => {
-    if (!walletState.isInitialized) {
-      throw new Error("Wallet not initialized");
-    }
-
-    try {
-      return await walletManager.estimateTransactionFee(chain, to, value);
-    } catch (error) {
-      console.error("Failed to estimate transaction fee:", error);
-      throw error;
-    }
-  };
-
-  const contextValue: WalletContextType = {
-    ...walletState,
-    initializeWallet,
-    generateNewSeedPhrase,
-    refreshBalances,
-    sendTransaction,
-    estimateTransactionFee,
-  };
-
-  return (
-    <WalletContext.Provider value={contextValue}>
-      {children}
-    </WalletContext.Provider>
-  );
-};
-
-// Custom hook to use wallet context
-export const useWallet = (): WalletContextType => {
-  const context = useContext(WalletContext);
-  if (context === undefined) {
-    throw new Error("useWallet must be used within a WalletProvider");
-  }
-  return context;
-};
-
-// Custom hooks for specific wallet operations
-export const useWalletInitialization = () => {
-  const { initializeWallet, generateNewSeedPhrase, isInitialized } = useWallet();
-  
-  return {
-    initializeWallet,
-    generateNewSeedPhrase,
-    isInitialized,
-  };
-};
-
-export const useWalletBalances = () => {
-  const { balances, refreshBalances } = useWallet();
-  
-  return {
-    balances,
-    refreshBalances,
-  };
-};
-
-export const useWalletAddresses = () => {
-  const { addresses } = useWallet();
-  
-  return {
-    addresses,
-  };
-};
-
-export const useWalletTransactions = () => {
-  const { sendTransaction, estimateTransactionFee } = useWallet();
-  
-  return {
-    sendTransaction,
-    estimateTransactionFee,
-  };
-};
+export default WalletManager;

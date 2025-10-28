@@ -40,7 +40,6 @@
     "next:format": "yarn workspace @se-2/nextjs format",
     "next:lint": "yarn workspace @se-2/nextjs lint",
     "next:serve": "yarn workspace @se-2/nextjs serve",
-    "postinstall": "husky",
     "precommit": "lint-staged",
     "start": "yarn workspace @se-2/nextjs dev",
     "test": "yarn hardhat:test",
@@ -48,18 +47,18 @@
     "vercel:yolo": "yarn workspace @se-2/nextjs vercel:yolo",
     "ipfs": "yarn workspace @se-2/nextjs ipfs",
     "vercel:login": "yarn workspace @se-2/nextjs vercel:login",
-    "verify": "yarn hardhat:verify"
+    "verify": "yarn hardhat:verify",
+    "avalanche:up": "./packages/hardhat/scripts/avalanche-local.sh start",
+    "avalanche:down": "./packages/hardhat/scripts/avalanche-local.sh stop",
+    "avalanche:status": "./packages/hardhat/scripts/avalanche-local.sh status",
+    "avalanche:clean": "./packages/hardhat/scripts/avalanche-local.sh clean",
+    "avalanche:restart": "./packages/hardhat/scripts/avalanche-local.sh restart"
   },
   "packageManager": "yarn@3.2.3",
   "devDependencies": {
-    "husky": "^9.1.6",
     "lint-staged": "^15.2.10"
   },
   "engines": {
     "node": ">=20.18.3"
-  },
-  "dependencies": {
-    "@tetherto/wdk": "^1.0.0-beta.3",
-    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.3"
   }
 }

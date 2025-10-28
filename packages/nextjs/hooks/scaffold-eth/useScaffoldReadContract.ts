@@ -1,11 +1,8 @@
-import { useEffect } from "react";
-import { QueryObserverResult, RefetchOptions, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { ExtractAbiFunctionNames } from "abitype";
-import { ReadContractErrorType } from "viem";
-import { useBlockNumber, useReadContract } from "wagmi";
-import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
+import { useWdk } from "~~/contexts/WdkContext";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
-import { AllowedChainIds } from "~~/utils/scaffold-eth";
+import { createWdkProvider, createReadContract, callReadFunction } from "~~/utils/scaffold-eth/wdkContract";
 import {
   AbiFunctionReturnType,
   ContractAbi,
@@ -14,13 +11,12 @@ import {
 } from "~~/utils/scaffold-eth/contract";
 
 /**
- * Wrapper around wagmi's useContractRead hook which automatically loads (by name) the contract ABI and address from
- * the contracts present in deployedContracts.ts & externalContracts.ts corresponding to targetNetworks configured in scaffold.config.ts
- * @param config - The config settings, including extra wagmi configuration
+ * Wrapper hook for reading contract data using WDK
+ * Automatically loads contract ABI and address from deployedContracts.ts
+ * @param config - The config settings
  * @param config.contractName - deployed contract name
  * @param config.functionName - name of the function to be called
  * @param config.args - args to be passed to the function call
- * @param config.chainId - optional chainId that is configured with the scaffold project to make use for multi-chain interactions.
  */
 export const useScaffoldReadContract = <
   TContractName extends ContractName,
@@ -29,52 +25,43 @@ export const useScaffoldReadContract = <
   contractName,
   functionName,
   args,
-  chainId,
   ...readConfig
 }: UseScaffoldReadConfig<TContractName, TFunctionName>) => {
-  const selectedNetwork = useSelectedNetwork(chainId);
+  const { currentNetwork, isInitialized } = useWdk();
+  
   const { data: deployedContract } = useDeployedContractInfo({
     contractName,
-    chainId: selectedNetwork.id as AllowedChainIds,
+    chainId: currentNetwork.chainId as any,
   });
 
   const { query: queryOptions, watch, ...readContractConfig } = readConfig;
-  // set watch to true by default
   const defaultWatch = watch ?? true;
 
-  const readContractHookRes = useReadContract({
-    chainId: selectedNetwork.id,
-    functionName,
-    address: deployedContract?.address,
-    abi: deployedContract?.abi,
-    args,
-    ...(readContractConfig as any),
-    query: {
-      enabled: !Array.isArray(args) || !args.some(arg => arg === undefined),
-      ...queryOptions,
-    },
-  }) as Omit<ReturnType<typeof useReadContract>, "data" | "refetch"> & {
-    data: AbiFunctionReturnType<ContractAbi, TFunctionName> | undefined;
-    refetch: (
-      options?: RefetchOptions | undefined,
-    ) => Promise<QueryObserverResult<AbiFunctionReturnType<ContractAbi, TFunctionName>, ReadContractErrorType>>;
-  };
+  const queryResult = useQuery({
+    queryKey: ["scaffold-read-contract", contractName, functionName, args, currentNetwork.chainId],
+    queryFn: async () => {
+      if (!deployedContract?.address || !deployedContract?.abi) {
+        throw new Error(`Contract ${contractName} not deployed on ${currentNetwork.displayName}`);
+      }
 
-  const queryClient = useQueryClient();
-  const { data: blockNumber } = useBlockNumber({
-    watch: defaultWatch,
-    chainId: selectedNetwork.id,
-    query: {
-      enabled: defaultWatch,
+      try {
+        // Create provider and contract instance
+        const provider = createWdkProvider(currentNetwork.rpcUrl);
+        const contract = createReadContract(deployedContract.address, [...deployedContract.abi] as any[], provider);
+
+        // Call the read function
+        const result = await callReadFunction(contract, functionName as string, args as any[] || []);
+        
+        return result;
+      } catch (error) {
+        console.error(`Error reading ${String(functionName)} from ${contractName}:`, error);
+        throw error;
+      }
     },
+    enabled: isInitialized && !!deployedContract?.address && (!Array.isArray(args) || !args.some(arg => arg === undefined)),
+    refetchInterval: defaultWatch ? 10000 : false, // Poll every 10 seconds if watching
+    ...queryOptions,
   });
 
-  useEffect(() => {
-    if (defaultWatch) {
-      queryClient.invalidateQueries({ queryKey: readContractHookRes.queryKey });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blockNumber]);
-
-  return readContractHookRes;
+  return queryResult as any;
 };
