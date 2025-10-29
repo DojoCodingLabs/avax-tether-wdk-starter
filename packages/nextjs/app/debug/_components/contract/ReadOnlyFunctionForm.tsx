@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { InheritanceTooltip } from "./InheritanceTooltip";
 import { Abi, AbiFunction } from "abitype";
 import { Address } from "viem";
-import { useReadContract } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { ethers } from "ethers";
 import {
   ContractInput,
   displayTxResult,
@@ -14,6 +15,7 @@ import {
   transformAbiFunction,
 } from "~~/app/debug/_components/contract";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+import { useWdkProvider } from "~~/hooks/scaffold-eth";
 import { getParsedError, notification } from "~~/utils/scaffold-eth";
 
 type ReadOnlyFunctionFormProps = {
@@ -32,17 +34,25 @@ export const ReadOnlyFunctionForm = ({
   const [form, setForm] = useState<Record<string, any>>(() => getInitialFormState(abiFunction));
   const [result, setResult] = useState<unknown>();
   const { targetNetwork } = useTargetNetwork();
+  const provider = useWdkProvider();
 
-  const { isFetching, refetch, error } = useReadContract({
-    address: contractAddress,
-    functionName: abiFunction.name,
-    abi: abi,
-    args: getParsedContractFunctionArgs(form),
-    chainId: targetNetwork.id,
-    query: {
-      enabled: false,
-      retry: false,
+  const { isFetching, refetch, error } = useQuery({
+    queryKey: ["contractReadWithArgs", contractAddress, abiFunction.name, targetNetwork.id, form],
+    queryFn: async () => {
+      if (!provider) throw new Error("Provider not available");
+      
+      const contract = new ethers.Contract(
+        contractAddress,
+        abi as any,
+        provider
+      );
+      
+      const args = getParsedContractFunctionArgs(form);
+      const result = await contract[abiFunction.name](...args);
+      return result;
     },
+    enabled: false, // Only run when user clicks "Read"
+    retry: false,
   });
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useIsMounted } from "usehooks-ts";
-import { usePublicClient } from "wagmi";
+import { useWdkProvider } from "~~/hooks/scaffold-eth";
 import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
 import {
   Contract,
@@ -48,21 +48,19 @@ export function useDeployedContractInfo<TContractName extends ContractName>(
   const selectedNetwork = useSelectedNetwork(chainId);
   const deployedContract = contracts?.[selectedNetwork.id]?.[contractName as ContractName] as Contract<TContractName>;
   const [status, setStatus] = useState<ContractCodeStatus>(ContractCodeStatus.LOADING);
-  const publicClient = usePublicClient({ chainId: selectedNetwork.id });
+  const provider = useWdkProvider();
 
   useEffect(() => {
     const checkContractDeployment = async () => {
       try {
-        if (!isMounted() || !publicClient) return;
+        if (!isMounted() || !provider) return;
 
         if (!deployedContract) {
           setStatus(ContractCodeStatus.NOT_FOUND);
           return;
         }
 
-        const code = await publicClient.getBytecode({
-          address: deployedContract.address,
-        });
+        const code = await provider.getCode(deployedContract.address);
 
         // If contract code is `0x` => no contract deployed on that address
         if (code === "0x") {
@@ -77,7 +75,7 @@ export function useDeployedContractInfo<TContractName extends ContractName>(
     };
 
     checkContractDeployment();
-  }, [isMounted, contractName, deployedContract, publicClient]);
+  }, [isMounted, contractName, deployedContract, provider]);
 
   return {
     data: status === ContractCodeStatus.DEPLOYED ? deployedContract : undefined,

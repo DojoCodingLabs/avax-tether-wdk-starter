@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { InheritanceTooltip } from "./InheritanceTooltip";
 import { Abi, AbiFunction } from "abitype";
 import { Address, TransactionReceipt } from "viem";
-import { useAccount, useConfig, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { ethers } from "ethers";
 import {
   ContractInput,
   TxReceipt,
@@ -14,10 +14,10 @@ import {
   transformAbiFunction,
 } from "~~/app/debug/_components/contract";
 import { IntegerInput } from "~~/components/scaffold-eth";
-import { useTransactor } from "~~/hooks/scaffold-eth";
+import { useWdk } from "~~/contexts/WdkContext";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
-import { AllowedChainIds } from "~~/utils/scaffold-eth";
-import { simulateContractWriteAndNotifyError } from "~~/utils/scaffold-eth/contract";
+import { useWdkProvider } from "~~/hooks/scaffold-eth";
+import { notification } from "~~/utils/scaffold-eth";
 
 type WriteOnlyFunctionFormProps = {
   abi: Abi;
@@ -36,47 +36,54 @@ export const WriteOnlyFunctionForm = ({
 }: WriteOnlyFunctionFormProps) => {
   const [form, setForm] = useState<Record<string, any>>(() => getInitialFormState(abiFunction));
   const [txValue, setTxValue] = useState<string>("");
-  const { chain } = useAccount();
-  const writeTxn = useTransactor();
+  const [isPending, setIsPending] = useState(false);
+  const [txHash, setTxHash] = useState<string>();
+  const { account, currentNetwork, isInitialized } = useWdk();
+  const provider = useWdkProvider();
   const { targetNetwork } = useTargetNetwork();
-  const writeDisabled = !chain || chain?.id !== targetNetwork.id;
-
-  const { data: result, isPending, writeContractAsync } = useWriteContract();
-
-  const wagmiConfig = useConfig();
+  
+  const writeDisabled = !isInitialized || !account || currentNetwork.chainId !== targetNetwork.id;
 
   const handleWrite = async () => {
-    if (writeContractAsync) {
-      try {
-        const writeContractObj = {
-          address: contractAddress,
-          functionName: abiFunction.name,
-          abi: abi,
-          args: getParsedContractFunctionArgs(form),
-          value: BigInt(txValue),
-        };
-        await simulateContractWriteAndNotifyError({
-          wagmiConfig,
-          writeContractParams: writeContractObj,
-          chainId: targetNetwork.id as AllowedChainIds,
-        });
+    if (!account || !provider) {
+      notification.error("Wallet not connected");
+      return;
+    }
 
-        const makeWriteWithParams = () => writeContractAsync(writeContractObj);
-        await writeTxn(makeWriteWithParams);
-        onChange();
-      } catch (e: any) {
-        console.error("⚡️ ~ file: WriteOnlyFunctionForm.tsx:handleWrite ~ error", e);
-      }
+    setIsPending(true);
+    try {
+      // Encode the contract function call
+      const contractInterface = new ethers.Interface(abi as any);
+      const args = getParsedContractFunctionArgs(form);
+      const data = contractInterface.encodeFunctionData(abiFunction.name, args);
+      
+      const value = txValue ? BigInt(txValue) : BigInt(0);
+      
+      // Send transaction using WDK account
+      const tx = await account.sendTransaction({
+        to: contractAddress,
+        value: value,
+        data: data,
+      });
+      
+      notification.info("Transaction sent! Waiting for confirmation...");
+      setTxHash(tx.hash);
+      
+      // Wait for transaction receipt
+      const receipt = await provider.waitForTransaction(tx.hash);
+      setDisplayedTxResult(receipt as any);
+      
+      notification.success("Transaction confirmed!");
+      onChange();
+    } catch (e: any) {
+      console.error("⚡️ ~ file: WriteOnlyFunctionForm.tsx:handleWrite ~ error", e);
+      notification.error(e?.message || "Transaction failed");
+    } finally {
+      setIsPending(false);
     }
   };
 
   const [displayedTxResult, setDisplayedTxResult] = useState<TransactionReceipt>();
-  const { data: txResult } = useWaitForTransactionReceipt({
-    hash: result,
-  });
-  useEffect(() => {
-    setDisplayedTxResult(txResult);
-  }, [txResult]);
 
   const transformedFunction = useMemo(() => transformAbiFunction(abiFunction), [abiFunction]);
   const inputs = transformedFunction.inputs.map((input, inputIndex) => {
@@ -138,9 +145,9 @@ export const WriteOnlyFunctionForm = ({
           </div>
         </div>
       </div>
-      {zeroInputs && txResult ? (
+      {zeroInputs && displayedTxResult ? (
         <div className="grow basis-0">
-          <TxReceipt txResult={txResult} />
+          <TxReceipt txResult={displayedTxResult} />
         </div>
       ) : null}
     </div>

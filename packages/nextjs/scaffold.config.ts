@@ -1,4 +1,5 @@
 import * as chains from "viem/chains";
+import { defineChain } from "viem";
 
 export type ScaffoldConfig = {
   targetNetworks: readonly chains.Chain[];
@@ -11,9 +12,27 @@ export type ScaffoldConfig = {
 
 export const DEFAULT_ALCHEMY_API_KEY = "oKxs-03sij-U_N0iOlrSsZFr29-IqbuF";
 
+// Define local Avalanche network
+export const avalancheLocal = defineChain({
+  id: 1337, // Local Avalanche node uses chain ID 1337
+  name: "Avalanche Local",
+  nativeCurrency: { name: "Avalanche", symbol: "AVAX", decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: ["http://127.0.0.1:9650/ext/bc/C/rpc"],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "Local Explorer",
+      url: "http://localhost:4000",
+    },
+  },
+});
+
 const scaffoldConfig = {
   // The networks on which your DApp is live
-  targetNetworks: [chains.avalanche, chains.avalancheFuji],
+  targetNetworks: [avalancheLocal, chains.avalancheFuji, chains.avalanche],
 
   // The interval at which your front-end polls the RPC servers for new data
   // it has no effect if you only target the local network (default is 4000)

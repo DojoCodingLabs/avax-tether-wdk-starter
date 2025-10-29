@@ -28,6 +28,10 @@ export const NETWORKS_EXTRA_DATA: Record<string, ChainAttributes> = {
   [chains.hardhat.id]: {
     color: "#b8af0c",
   },
+  [1337]: {
+    // Avalanche Local
+    color: "#b8af0c",
+  },
   [chains.avalanche.id]: {
     color: "#e84142",
   },
@@ -67,7 +71,8 @@ export function getBlockExplorerTxLink(chainId: number, txnHash: string) {
  */
 export function getBlockExplorerAddressLink(network: chains.Chain, address: string) {
   const blockExplorerBaseURL = network.blockExplorers?.default?.url;
-  if (network.id === chains.hardhat.id) {
+  // Use local block explorer for hardhat and Avalanche local
+  if (network.id === chains.hardhat.id || network.id === 1337) {
     return `/blockexplorer/address/${address}`;
   }
 

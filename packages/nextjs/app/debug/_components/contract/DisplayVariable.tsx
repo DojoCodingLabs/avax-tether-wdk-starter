@@ -5,9 +5,10 @@ import { InheritanceTooltip } from "./InheritanceTooltip";
 import { displayTxResult } from "./utilsDisplay";
 import { Abi, AbiFunction } from "abitype";
 import { Address } from "viem";
-import { useReadContract } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { ethers } from "ethers";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
-import { useAnimationConfig } from "~~/hooks/scaffold-eth";
+import { useAnimationConfig, useWdkProvider } from "~~/hooks/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { getParsedError, notification } from "~~/utils/scaffold-eth";
 
@@ -27,20 +28,29 @@ export const DisplayVariable = ({
   inheritedFrom,
 }: DisplayVariableProps) => {
   const { targetNetwork } = useTargetNetwork();
+  const provider = useWdkProvider();
 
   const {
     data: result,
     isFetching,
     refetch,
     error,
-  } = useReadContract({
-    address: contractAddress,
-    functionName: abiFunction.name,
-    abi: abi,
-    chainId: targetNetwork.id,
-    query: {
-      retry: false,
+  } = useQuery({
+    queryKey: ["contractRead", contractAddress, abiFunction.name, targetNetwork.id, refreshDisplayVariables],
+    queryFn: async () => {
+      if (!provider) throw new Error("Provider not available");
+      
+      const contract = new ethers.Contract(
+        contractAddress,
+        abi as any,
+        provider
+      );
+      
+      const result = await contract[abiFunction.name]();
+      return result;
     },
+    enabled: !!provider && !!contractAddress,
+    retry: false,
   });
 
   const { showAnimation } = useAnimationConfig(result);
