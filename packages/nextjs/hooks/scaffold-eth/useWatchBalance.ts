@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { useWdk } from "~~/contexts/WdkContext";
+import { useWdkProvider } from "./useWdkProvider";
 import { useTargetNetwork } from "./useTargetNetwork";
 
 type UseWatchBalanceParameters = {
@@ -9,9 +10,11 @@ type UseWatchBalanceParameters = {
 
 /**
  * WDK-based balance hook. Polls balance every 4 seconds.
+ * Fetches balance for any address using the provider.
  */
 export const useWatchBalance = ({ address }: UseWatchBalanceParameters) => {
   const { account, isInitialized, address: wdkAddress } = useWdk();
+  const provider = useWdkProvider();
   const { targetNetwork } = useTargetNetwork();
 
   // If no address provided, use the WDK account's own address
@@ -24,11 +27,11 @@ export const useWatchBalance = ({ address }: UseWatchBalanceParameters) => {
   } = useQuery({
     queryKey: ["balance", targetAddress, targetNetwork.id],
     queryFn: async () => {
-      if (!targetAddress || !isInitialized || !account) return null;
+      if (!targetAddress) return null;
       
       try {
-        // If querying our own address, use the account directly
-        if (targetAddress === wdkAddress) {
+        // If querying our own address and we have an account, use it directly
+        if (targetAddress === wdkAddress && account) {
           const balanceValue = await account.getBalance();
           return {
             decimals: targetNetwork.nativeCurrency.decimals,
@@ -38,16 +41,25 @@ export const useWatchBalance = ({ address }: UseWatchBalanceParameters) => {
           };
         }
         
-        // For other addresses, we'd need to use a provider
-        // For now, return null as WDK accounts primarily check their own balance
-        console.warn("Balance checking for other addresses not yet implemented");
-        return null;
+        // For other addresses (including contracts), use the provider
+        if (!provider) {
+          console.warn("Provider not available for balance check");
+          return null;
+        }
+        
+        const balanceValue = await provider.getBalance(targetAddress);
+        return {
+          decimals: targetNetwork.nativeCurrency.decimals,
+          formatted: (Number(balanceValue) / 1e18).toFixed(4),
+          symbol: targetNetwork.nativeCurrency.symbol,
+          value: balanceValue,
+        };
       } catch (error) {
         console.error("Failed to fetch balance:", error);
         throw error;
       }
     },
-    enabled: !!targetAddress && isInitialized && !!account,
+    enabled: !!targetAddress && (isInitialized || !!provider),
     refetchInterval: 4000, // Poll every 4 seconds
   });
 
