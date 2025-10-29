@@ -12,17 +12,18 @@ body:
       label: Is there an existing issue for this?
       description: Please search to see if an issue already exists for the bug you encountered.
       options:
-        - label: I have looked through the [existing issues](https://github.com/scaffold-eth/scaffold-eth-2/issues)
+        - label: I have searched through the existing issues
           required: true
 
   - type: dropdown
     attributes:
-      label: Which method was used to setup Scaffold-ETH 2 ?
-      description: You may select both, if the bug is present in both the methods.
-      multiple: true
+      label: Which Avalanche network are you using?
+      description: Select the network where you encountered the bug.
+      multiple: false
       options:
-        - git clone
-        - npx create-eth@latest
+        - Local (Chain ID 1337)
+        - Fuji Testnet (Chain ID 43113)
+        - Mainnet (Chain ID 43114)
     validations:
       required: true
 

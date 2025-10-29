@@ -356,7 +356,7 @@ yarn start
 
 ## 📚 Resources
 
-- [WDK Documentation](https://github.com/tetherto/lib-wallet-sdk)
+- [WDK Documentation](https://docs.wallet.tether.io/)
 - [Avalanche Documentation](https://docs.avax.network)
 - [Scaffold-ETH 2 Documentation](https://docs.scaffoldeth.io)
 - [Ethers.js Documentation](https://docs.ethers.org/v6/)

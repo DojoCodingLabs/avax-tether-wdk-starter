@@ -1,8 +1,11 @@
 blank_issues_enabled: true
 contact_links:
-  - name: Ask Question
-    url: https://github.com/scaffold-eth/scaffold-eth-2/discussions/new?category=q-a
-    about: Ask questions and discuss with other community members
-  - name: Request Feature
-    url: https://github.com/scaffold-eth/scaffold-eth-2/discussions/new?category=ideas 
-    about: Requests features or brainstorm ideas for new functionality
+  - name: Join Discord
+    url: https://discord.gg/dojocoding
+    about: Ask questions and discuss with the Dojo Coding community
+  - name: Avalanche Documentation
+    url: https://docs.avax.network
+    about: Learn more about Avalanche development
+  - name: WDK Documentation
+    url: https://docs.wallet.tether.io/
+    about: Learn more about the Wallet Development Kit

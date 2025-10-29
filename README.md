@@ -1,6 +1,6 @@
 # WDK Avalanche Starter 🏔️
 
-A fully integrated Avalanche C-Chain development starter built on Scaffold-ETH 2, powered by the [Tether Wallet Development Kit (WDK)](https://github.com/tetherto/lib-wallet-sdk). This starter provides a complete development environment for building dApps on Avalanche Local, Fuji Testnet, and Mainnet.
+A fully integrated Avalanche C-Chain development starter built on Scaffold-ETH 2, powered by the [Tether Wallet Development Kit (WDK)](https://docs.wallet.tether.io/). This starter provides a complete development environment for building dApps on Avalanche Local, Fuji Testnet, and Mainnet.
 
 ## 🚀 Features
 
@@ -51,7 +51,7 @@ yarn install
 yarn avalanche:up
 ```
 
-This will start a local Avalanche C-Chain node at `http://127.0.0.1:9650/ext/bc/C/rpc` with Chain ID `43112`.
+This will start a local Avalanche C-Chain node at `http://127.0.0.1:9650/ext/bc/C/rpc` with Chain ID `1337`.
 
 Check node status:
 ```bash
@@ -105,6 +105,27 @@ Visit `http://localhost:3000` and navigate to the **Avalanche Wallet** page to c
 - Use the network dropdown in the header or wallet page
 - Switch between Local, Fuji Testnet, and Mainnet
 - Your wallet persists across network switches
+
+### Getting Testnet AVAX
+
+To test your dApp on Fuji Testnet, you'll need testnet AVAX tokens. Here are the available faucets:
+
+#### Official Avalanche Faucet
+- **URL**: [https://core.app/tools/testnet-faucet](https://core.app/tools/testnet-faucet)
+- **Requirements**: Either a non-zero mainnet AVAX balance OR a coupon code
+- **Note**: Most reliable option, revamped in 2024 with anti-drain protection
+
+#### Chainlink Faucet
+- **URL**: [https://faucets.chain.link/fuji](https://faucets.chain.link/fuji)
+- **Requirements**: GitHub or Google account
+- **Amount**: Variable
+
+#### QuickNode Faucet
+- **URL**: [https://faucet.quicknode.com/avalanche/fuji](https://faucet.quicknode.com/avalanche/fuji)
+- **Requirements**: 0.001 ETH on Ethereum Mainnet
+- **Limit**: One drip per network every 12 hours
+
+**Note**: Testnet AVAX has no monetary value and is only for testing purposes.
 
 ### Seed Phrase Security
 
@@ -237,7 +258,7 @@ Networks are configured in `packages/nextjs/config/networks.ts`:
 ```typescript
 {
   local: {
-    chainId: 43112,
+    chainId: 1337,
     rpcUrl: "http://127.0.0.1:9650/ext/bc/C/rpc"
   },
   fuji: {
@@ -323,7 +344,7 @@ yarn deploy:mainnet
 
 - [Scaffold-ETH 2 Docs](https://docs.scaffoldeth.io)
 - [Avalanche Docs](https://docs.avax.network)
-- [WDK Documentation](https://github.com/tetherto/lib-wallet-sdk)
+- [WDK Documentation](https://docs.wallet.tether.io/)
 - [Hardhat Docs](https://hardhat.org/docs)
 - [Next.js Docs](https://nextjs.org/docs)
 
@@ -337,9 +358,13 @@ This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
-- Built on [Scaffold-ETH 2](https://scaffoldeth.io)
-- Powered by [Tether WDK](https://tether.to)
-- Supports [Avalanche](https://avax.network)
+This starter kit is built with love by [Dojo Coding](https://dojocoding.io) and stands on the shoulders of amazing open source projects:
+
+- **[Scaffold-ETH 2](https://scaffoldeth.io)** - The foundation of this starter kit, created by [BuidlGuidl](https://buidlguidl.com/). An incredible toolkit for Ethereum development that we've adapted for Avalanche.
+- **[Tether WDK](https://tether.to)** - The Wallet Development Kit that powers all blockchain interactions in this starter.
+- **[Avalanche](https://avax.network)** - The blazing fast L1 blockchain platform this starter is built for.
+
+We're grateful to the open source community for making projects like this possible. Special thanks to BuidlGuidl for creating Scaffold-ETH 2 and fostering a culture of building in public.
 
 ---
 

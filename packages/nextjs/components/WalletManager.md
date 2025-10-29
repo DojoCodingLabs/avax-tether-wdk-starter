@@ -404,5 +404,5 @@ Potential improvements:
 For issues or questions:
 - Check the main [README.md](../../../README.md)
 - Review [Scaffold-ETH 2 docs](https://docs.scaffoldeth.io)
-- See [WDK documentation](https://github.com/tetherto/lib-wallet-sdk)
+- See [WDK documentation](https://docs.wallet.tether.io/)
 - Open an issue on GitHub
