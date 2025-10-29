@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWdk } from "~~/contexts/WdkContext";
 import { AVALANCHE_NETWORKS, NetworkId } from "~~/config/networks";
 import { Address } from "~~/components/scaffold-eth";
 import { Balance } from "~~/components/scaffold-eth";
+import { SeedVault } from "~~/services/seedVault";
 
 /**
  * Modern Wallet Manager Component
@@ -29,22 +30,36 @@ export function WalletManager() {
     switchNetwork,
   } = useWdk();
 
-  const [view, setView] = useState<"locked" | "unlocked" | "create" | "import">("locked");
+  const [view, setView] = useState<"locked" | "unlocked" | "create" | "import" | "import-after-disconnect">("locked");
   const [importSeedInput, setImportSeedInput] = useState("");
   const [newSeedPhrase, setNewSeedPhrase] = useState<string | null>(null);
   const [seedSaved, setSeedSaved] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportedSeed, setExportedSeed] = useState<string | null>(null);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [vaultExists, setVaultExists] = useState<boolean | null>(null);
 
-  // Determine initial view
-  if (!isInitialized && !isLocked && view === "locked") {
-    // No wallet exists, show create/import options
-  } else if (isLocked && view === "locked") {
-    // Wallet exists but locked
-  } else if (isInitialized && !isLocked && view === "locked") {
-    setView("unlocked");
-  }
+  // Check if vault exists on mount and when wallet state changes
+  useEffect(() => {
+    const checkVault = async () => {
+      const exists = await SeedVault.exists();
+      setVaultExists(exists);
+      
+      // Update view based on wallet state and vault existence
+      if (isLocked && !isInitialized && !exists) {
+        // Wallet was disconnected, need to import
+        setView("import-after-disconnect");
+      } else if (isLocked) {
+        setView("locked");
+      } else if (isInitialized && !isLocked) {
+        setView("unlocked");
+      } else if (!isInitialized && !isLocked) {
+        setView("create");
+      }
+    };
+    
+    checkVault();
+  }, [isInitialized, isLocked]);
 
   const handleCreateWallet = async () => {
     try {
@@ -104,7 +119,8 @@ export function WalletManager() {
   const handleDisconnect = async () => {
     await disconnectWallet();
     setShowDisconnectModal(false);
-    setView("create");
+    setVaultExists(false);
+    setView("import-after-disconnect");
   };
 
   const handleNetworkSwitch = async (networkId: NetworkId) => {
@@ -164,8 +180,86 @@ export function WalletManager() {
     );
   }
 
-  // Locked state - wallet exists but locked
-  if (isLocked && !isInitialized) {
+  // Import after disconnect - wallet was disconnected, need to re-import
+  if (view === "import-after-disconnect") {
+    return (
+      <div className="card w-full max-w-lg bg-base-100 shadow-xl mx-auto">
+        <div className="card-body p-8">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-3">🔌</div>
+            <h2 className="text-2xl font-bold">Wallet Disconnected</h2>
+            <p className="text-sm text-base-content/70 mt-3">
+              Your wallet has been disconnected. Import your saved seed phrase to reconnect.
+            </p>
+          </div>
+
+          <div className="alert alert-info mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span className="text-sm">If you don't have your seed phrase, you'll need to create a new wallet.</span>
+          </div>
+          
+          {error && (
+            <div className="alert alert-error mb-6">
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text font-semibold">Seed Phrase (12 or 24 words)</span>
+            </label>
+            <textarea
+              className="textarea textarea-bordered w-full h-40 resize-none text-sm p-4 leading-6 whitespace-pre-wrap break-words"
+              placeholder="Enter your seed phrase here (separate words with spaces)&#10;&#10;Example:&#10;word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12"
+              value={importSeedInput}
+              onChange={(e) => setImportSeedInput(e.target.value)}
+              autoComplete="off"
+              spellCheck="false"
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                lineHeight: '1.5rem',
+                wordWrap: 'break-word',
+                overflowWrap: 'break-word'
+              }}
+            />
+            <label className="label">
+              <span className="label-text-alt text-base-content/60">
+                💡 Tip: Each word should be separated by a space
+              </span>
+            </label>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            <button 
+              className="btn btn-outline btn-lg flex-1" 
+              onClick={() => setView("create")}
+            >
+              Create New Wallet
+            </button>
+            <button 
+              className="btn btn-primary btn-lg flex-1" 
+              onClick={handleImportWallet}
+              disabled={isLoading || !importSeedInput.trim()}
+            >
+              {isLoading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Importing...
+                </>
+              ) : (
+                "Import Wallet"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Locked state - wallet exists in vault but locked
+  if (isLocked && vaultExists) {
     return (
       <div className="card w-full max-w-md bg-base-100 shadow-xl mx-auto">
         <div className="card-body items-center text-center">
@@ -197,44 +291,64 @@ export function WalletManager() {
   if (!isInitialized && (view === "create" || view === "import")) {
     if (view === "import") {
       return (
-        <div className="card w-full max-w-md bg-base-100 shadow-xl mx-auto">
-          <div className="card-body">
-            <h2 className="card-title text-2xl">Import Wallet</h2>
-            <p className="text-sm text-base-content/70 mb-4">
+        <div className="card w-full max-w-lg bg-base-100 shadow-xl mx-auto">
+          <div className="card-body p-8">
+            <h2 className="text-2xl font-bold mb-2">Import Wallet</h2>
+            <p className="text-sm text-base-content/70 mb-6">
               Enter your 12 or 24 word seed phrase to restore your wallet.
             </p>
             
             {error && (
-              <div className="alert alert-error mb-4">
+              <div className="alert alert-error mb-6">
                 <span>{error}</span>
               </div>
             )}
 
             <div className="form-control w-full">
               <label className="label">
-                <span className="label-text">Seed Phrase</span>
+                <span className="label-text font-semibold">Seed Phrase (12 or 24 words)</span>
               </label>
               <textarea
-                className="textarea textarea-bordered h-32"
-                placeholder="word1 word2 word3 ..."
+                className="textarea textarea-bordered w-full h-40 resize-none text-sm p-4 leading-6 whitespace-pre-wrap break-words"
+                placeholder="Enter your seed phrase here (separate words with spaces)&#10;&#10;Example:&#10;word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12"
                 value={importSeedInput}
                 onChange={(e) => setImportSeedInput(e.target.value)}
+                autoComplete="off"
+                spellCheck="false"
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  lineHeight: '1.5rem',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word'
+                }}
               />
+              <label className="label">
+                <span className="label-text-alt text-base-content/60">
+                  💡 Tip: Each word should be separated by a space
+                </span>
+              </label>
             </div>
 
-            <div className="card-actions justify-between mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button 
-                className="btn btn-ghost" 
+                className="btn btn-outline btn-lg flex-1" 
                 onClick={() => setView("create")}
               >
                 Back
               </button>
               <button 
-                className="btn btn-primary" 
+                className="btn btn-primary btn-lg flex-1" 
                 onClick={handleImportWallet}
                 disabled={isLoading || !importSeedInput.trim()}
               >
-                {isLoading ? "Importing..." : "Import Wallet"}
+                {isLoading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Importing...
+                  </>
+                ) : (
+                  "Import Wallet"
+                )}
               </button>
             </div>
           </div>

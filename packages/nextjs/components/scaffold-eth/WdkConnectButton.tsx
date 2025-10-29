@@ -96,7 +96,7 @@ export function WdkConnectButton() {
 
       {/* Address Display */}
       <a href="/wallet" className="btn btn-sm btn-ghost">
-        {address && <Address address={address as `0x${string}`} />}
+        {address && <Address address={address as `0x${string}`} disableAddressLink={true} />}
       </a>
     </div>
   );
