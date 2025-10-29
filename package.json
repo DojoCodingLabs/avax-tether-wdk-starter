@@ -52,7 +52,8 @@
     "avalanche:down": "./packages/hardhat/scripts/avalanche-local.sh stop",
     "avalanche:status": "./packages/hardhat/scripts/avalanche-local.sh status",
     "avalanche:clean": "./packages/hardhat/scripts/avalanche-local.sh clean",
-    "avalanche:restart": "./packages/hardhat/scripts/avalanche-local.sh restart"
+    "avalanche:restart": "./packages/hardhat/scripts/avalanche-local.sh restart",
+    "fund:local": "./scripts/fund-wallet.sh"
   },
   "packageManager": "yarn@3.2.3",
   "devDependencies": {
