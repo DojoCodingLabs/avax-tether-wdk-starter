@@ -111,9 +111,8 @@ Visit `http://localhost:3000` and navigate to the **Avalanche Wallet** page to c
 To test your dApp on Fuji Testnet, you'll need testnet AVAX tokens. Here are the available faucets:
 
 #### Official Avalanche Faucet
-- **URL**: [https://core.app/tools/testnet-faucet](https://core.app/tools/testnet-faucet)
-- **Requirements**: Either a non-zero mainnet AVAX balance OR a coupon code
-- **Note**: Most reliable option, revamped in 2024 with anti-drain protection
+- **URL**: [https://build.avax.network/console/primary-network/faucet](https://build.avax.network/console/primary-network/faucet)
+- **Requirements**: Have an Avax Builder Hub Account
 
 #### Chainlink Faucet
 - **URL**: [https://faucets.chain.link/fuji](https://faucets.chain.link/fuji)
