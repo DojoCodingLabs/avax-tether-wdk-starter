@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,6 +8,7 @@ import { Bars3Icon, BugAntIcon } from "@heroicons/react/24/outline";
 import { WdkConnectButton } from "~~/components/scaffold-eth/WdkConnectButton";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 import { useWdk } from "~~/contexts/WdkContext";
+import { AVALANCHE_NETWORKS, NetworkId } from "~~/config/networks";
 
 type HeaderMenuLink = {
   label: string;
@@ -58,6 +59,75 @@ export const HeaderMenuLinks = () => {
 };
 
 /**
+ * Network Selector Component for Header
+ */
+const NetworkSelector = () => {
+  const { currentNetwork, switchNetwork, isSwitchingNetwork, isInitialized } = useWdk();
+  const networkMenuRef = useRef<HTMLDetailsElement>(null);
+
+  const handleNetworkSwitch = async (networkId: NetworkId) => {
+    // Close the dropdown
+    networkMenuRef.current?.removeAttribute("open");
+    
+    try {
+      await switchNetwork(networkId);
+    } catch (error) {
+      console.error("Failed to switch network:", error);
+    }
+  };
+
+  // Only show if wallet is initialized
+  if (!isInitialized) {
+    return null;
+  }
+
+  const networkColors = {
+    local: "bg-yellow-500",
+    fuji: "bg-blue-500",
+    mainnet: "bg-red-500",
+  };
+
+  const networkColor = networkColors[currentNetwork.id as keyof typeof networkColors] || "bg-gray-500";
+
+  return (
+    <details className="dropdown dropdown-end" ref={networkMenuRef}>
+      <summary 
+        className="btn btn-sm btn-ghost gap-2 normal-case list-none cursor-pointer"
+        style={{ listStyle: 'none' }}
+      >
+        <div className={`w-2.5 h-2.5 rounded-full ${networkColor}`} />
+        <span className="hidden sm:inline text-sm font-medium">{currentNetwork.displayName}</span>
+        <span className="sm:hidden text-xs">{currentNetwork.id.toUpperCase()}</span>
+        {isSwitchingNetwork && <span className="loading loading-spinner loading-xs"></span>}
+        <svg className="fill-current w-3 h-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+          <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+        </svg>
+      </summary>
+      <ul className="menu dropdown-content mt-2 p-2 shadow-lg bg-base-200 rounded-box w-56 z-50">
+        {Object.values(AVALANCHE_NETWORKS).map((network) => (
+          <li key={network.id}>
+            <button
+              onClick={() => handleNetworkSwitch(network.id as NetworkId)}
+              className={`flex items-center gap-3 ${currentNetwork.id === network.id ? 'active' : ''}`}
+              disabled={isSwitchingNetwork}
+            >
+              <div className={`w-2.5 h-2.5 rounded-full ${networkColors[network.id as keyof typeof networkColors]}`} />
+              <div className="flex flex-col items-start">
+                <span className="font-medium">{network.displayName}</span>
+                <span className="text-xs text-base-content/60">Chain ID: {network.chainId}</span>
+              </div>
+              {currentNetwork.id === network.id && (
+                <span className="ml-auto text-success">✓</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+};
+
+/**
  * Site header
  */
 export const Header = () => {
@@ -98,7 +168,8 @@ export const Header = () => {
           <HeaderMenuLinks />
         </ul>
       </div>
-      <div className="navbar-end grow mr-4">
+      <div className="navbar-end grow mr-4 gap-2">
+        <NetworkSelector />
         <WdkConnectButton />
       </div>
     </div>
