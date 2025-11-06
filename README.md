@@ -69,11 +69,13 @@ Deploy to Fuji testnet:
 ```bash
 yarn deploy:fuji
 ```
+> **Note**: For detailed testnet deployment instructions, see the [Deploying Smart Contracts to Testnet](#-deploying-smart-contracts-to-testnet) section below.
 
 Deploy to Mainnet (be careful!):
 ```bash
 yarn deploy:mainnet
 ```
+> **Warning**: Only deploy to mainnet after thorough testing on local and testnet environments.
 
 ### 4. Start Frontend
 
@@ -125,6 +127,95 @@ To test your dApp on Fuji Testnet, you'll need testnet AVAX tokens. Here are the
 - **Limit**: One drip per network every 12 hours
 
 **Note**: Testnet AVAX has no monetary value and is only for testing purposes.
+
+## 🚀 Deploying Smart Contracts to Testnet
+
+Follow these steps to deploy your smart contracts to Avalanche Fuji Testnet:
+
+### Step 1: Export Private Key from WDK Wallet
+
+1. Start the frontend application:
+   ```bash
+   yarn start
+   ```
+2. Navigate to `http://localhost:3000/wallet` in your browser
+3. Make sure your wallet is unlocked (create one if you haven't already)
+4. Click the **"Show Private Key"** button
+5. Read the warning message and click **"Show Private Key"** to confirm
+6. **Copy the private key** that appears on the screen
+   - ⚠️ **Important**: Keep this private key secure and never share it with anyone
+   - This private key gives full access to your wallet and funds
+
+> **Why Step 1?** You need the private key to import your WDK wallet account into Hardhat for contract deployment.
+
+### Step 2: Get Testnet Tokens from Faucet
+
+1. On the `/wallet` page, copy your wallet address (displayed at the top of the wallet card)
+2. Switch the network to **Fuji Testnet** using the network dropdown (if not already on Fuji)
+3. Visit one of the testnet faucets listed above (e.g., [Chainlink Faucet](https://faucets.chain.link/fuji))
+4. Paste your wallet address and request testnet AVAX tokens
+5. Wait for the transaction to confirm (usually takes a few minutes)
+6. Verify you received the tokens by checking your wallet balance on the `/wallet` page
+
+> **Tip**: You'll need at least 0.01 AVAX to cover gas fees for contract deployment.
+
+### Step 3: Import Account into Hardhat
+
+1. Open your terminal in the project root directory
+2. Run the account import command:
+   ```bash
+   yarn account:import
+   ```
+3. When prompted, paste your private key (the one you copied from Step 1)
+4. Create and confirm a password to encrypt your private key
+   - ⚠️ **Remember this password** - you'll need it in Step 4 to deploy
+5. The encrypted private key will be saved to `packages/hardhat/.env` as `DEPLOYER_PRIVATE_KEY_ENCRYPTED`
+
+> **Security Note**: The private key is encrypted and stored locally. Never commit the `.env` file to version control.
+
+### Step 4: Deploy to Testnet
+
+1. Make sure your contracts are compiled:
+   ```bash
+   yarn compile
+   ```
+2. Deploy to Fuji testnet:
+   ```bash
+   yarn deploy:fuji
+   ```
+3. When prompted, enter the password you created in Step 3
+4. Wait for the deployment to complete
+5. The script will output the deployed contract address and transaction hash
+
+### Step 5: Verify Deployment
+
+You can verify your deployment in two ways:
+
+#### Option A: Using the Avalanche Testnet Explorer
+1. Copy the transaction hash from the deployment output
+2. Visit [https://subnets-test.avax.network/c-chain](https://subnets-test.avax.network/c-chain)
+3. Paste the transaction hash in the search bar
+4. View the transaction details, contract address, and verify the deployment
+
+#### Option B: Using Your WDK Wallet
+1. Go to your `/wallet` page in the application
+2. Switch to Fuji Testnet if not already on it
+3. Your wallet balance should reflect the gas spent on deployment
+4. You can also check the transaction hash in the explorer to see full deployment details
+
+### Troubleshooting
+
+**Error: "insufficient funds for gas"**
+- Make sure you have enough testnet AVAX in your account (at least 0.01 AVAX)
+- Request more tokens from the faucet if needed
+
+**Error: "Failed to decrypt private key"**
+- Make sure you're using the correct password created during `yarn account:import`
+- If you forgot the password, you'll need to re-import the account
+
+**Deployment takes too long**
+- Testnet transactions can sometimes be slow. Wait a few minutes and check the explorer
+- If the transaction fails, check the error message and try again
 
 ### Seed Phrase Security
 
@@ -334,10 +425,14 @@ yarn compile
 
 # Deploy to Fuji testnet
 yarn deploy:fuji
+# See the "Deploying Smart Contracts to Testnet" section for detailed steps
 
 # Deploy to Mainnet (requires funded account)
 yarn deploy:mainnet
+# ⚠️ Only use after thorough testing on testnet!
 ```
+
+For step-by-step testnet deployment instructions, refer to the [Deploying Smart Contracts to Testnet](#-deploying-smart-contracts-to-testnet) section above.
 
 ## 📚 Documentation
 
