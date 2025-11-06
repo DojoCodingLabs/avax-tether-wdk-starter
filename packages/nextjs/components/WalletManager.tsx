@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { HDNodeWallet } from "ethers";
 import { useWdk } from "~~/contexts/WdkContext";
 import { AVALANCHE_NETWORKS, NetworkId } from "~~/config/networks";
 import { Address } from "~~/components/scaffold-eth";
@@ -36,6 +37,8 @@ export function WalletManager() {
   const [seedSaved, setSeedSaved] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportedSeed, setExportedSeed] = useState<string | null>(null);
+  const [showPrivateKeyModal, setShowPrivateKeyModal] = useState(false);
+  const [exportedPrivateKey, setExportedPrivateKey] = useState<string | null>(null);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const [vaultExists, setVaultExists] = useState<boolean | null>(null);
 
@@ -113,6 +116,17 @@ export function WalletManager() {
       setExportedSeed(seed);
     } catch (error) {
       console.error("Failed to export seed:", error);
+    }
+  };
+
+  const handleExportPrivateKey = async () => {
+    try {
+      const seed = await exportSeedPhrase();
+      // Derive private key from seed phrase using ethers
+      const wallet = HDNodeWallet.fromPhrase(seed);
+      setExportedPrivateKey(wallet.privateKey);
+    } catch (error) {
+      console.error("Failed to export private key:", error);
     }
   };
 
@@ -459,6 +473,12 @@ export function WalletManager() {
             Export Seed
           </button>
           <button 
+            className="btn btn-sm btn-outline"
+            onClick={() => setShowPrivateKeyModal(true)}
+          >
+            Show Private Key
+          </button>
+          <button 
             className="btn btn-sm btn-warning"
             onClick={handleLock}
           >
@@ -526,6 +546,76 @@ export function WalletManager() {
             <button onClick={() => {
               setExportedSeed(null);
               setShowExportModal(false);
+            }}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {/* Export Private Key Modal */}
+      {showPrivateKeyModal && (
+        <dialog className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg">⚠️ Export Private Key</h3>
+            {!exportedPrivateKey ? (
+              <>
+                <p className="py-4">
+                  Are you sure you want to export your private key? Make sure no one is watching your screen.
+                </p>
+                <div className="alert alert-warning">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <h3 className="font-bold">Warning!</h3>
+                    <div className="text-sm">Your private key provides full access to your wallet. Never share it with anyone!</div>
+                  </div>
+                </div>
+                <div className="modal-action">
+                  <button 
+                    className="btn btn-ghost" 
+                    onClick={() => setShowPrivateKeyModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="btn btn-warning" 
+                    onClick={handleExportPrivateKey}
+                  >
+                    Show Private Key
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-base-200 p-4 rounded-lg my-4">
+                  <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                    {exportedPrivateKey}
+                  </pre>
+                </div>
+                <div className="alert alert-error mt-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-xs">Never share this private key with anyone! It provides full access to your wallet and funds.</span>
+                </div>
+                <div className="modal-action">
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      setExportedPrivateKey(null);
+                      setShowPrivateKeyModal(false);
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => {
+              setExportedPrivateKey(null);
+              setShowPrivateKeyModal(false);
             }}>close</button>
           </form>
         </dialog>
