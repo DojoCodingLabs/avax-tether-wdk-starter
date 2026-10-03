@@ -1,8 +1,24 @@
-# WDK Avalanche Starter 🏔️
+<p align="center">
+  <a href="https://dojocoding.io">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.svg">
+      <img alt="WDK Avalanche Starter by Dojo Coding: Avalanche dApps with a Tether WDK wallet" src="docs/assets/banner-light.svg" width="100%">
+    </picture>
+  </a>
+</p>
+
+# WDK Avalanche Starter
+
+**A dApp starter for builders on Avalanche C-Chain: Hardhat contracts, a Next.js app and a Tether WDK wallet, from a local node to Mainnet.**
 
 A fully integrated Avalanche C-Chain development starter built on Scaffold-ETH 2, powered by the [Tether Wallet Development Kit (WDK)](https://docs.wallet.tether.io/). This starter provides a complete development environment for building dApps on Avalanche Local, Fuji Testnet, and Mainnet.
 
-## 🚀 Features
+[![License: MIT](https://img.shields.io/badge/license-MIT-FF7151?labelColor=201E3D)](LICENCE) [![Chain: Avalanche C-Chain](https://img.shields.io/badge/chain-Avalanche%20C--Chain-FF7151?labelColor=201E3D)](https://docs.avax.network) [![Node.js 20.18.3+](https://img.shields.io/badge/Node.js-20.18.3%2B-201E3D?labelColor=201E3D)](https://nodejs.org/en/download/)
+
+[Get started](#quick-start) · [Commands](#available-commands) · [Docs](#documentation) · [Contribute](CONTRIBUTING.md) · [Report an issue](https://github.com/DojoCodingLabs/avax-tether-wdk-starter/issues/new)
+
+## Features
 
 - ✅ **WDK-First Architecture**: All blockchain interactions use WDK exclusively (no wagmi/viem/ethers for runtime operations)
 - 🏔️ **Full Avalanche Support**: Local node, Fuji Testnet (43113), and Mainnet (43114)
@@ -14,7 +30,7 @@ A fully integrated Avalanche C-Chain development starter built on Scaffold-ETH 2
 - 🔥 **Hot Reload**: Frontend auto-adapts to smart contract changes
 - 🧱 **Web3 Components**: Pre-built components for Address, Balance, and more
 
-## 📋 Requirements
+## Requirements
 
 Before you begin, install the following:
 
@@ -37,7 +53,7 @@ brew install ava-labs/tap/avalanche-cli
 curl -sSfL https://raw.githubusercontent.com/ava-labs/avalanche-cli/main/scripts/install.sh | sh -s
 ```
 
-## 🏁 Quick Start
+## Quick Start
 
 ### 1. Install Dependencies
 
@@ -69,7 +85,7 @@ Deploy to Fuji testnet:
 ```bash
 yarn deploy:fuji
 ```
-> **Note**: For detailed testnet deployment instructions, see the [Deploying Smart Contracts to Testnet](#-deploying-smart-contracts-to-testnet) section below.
+> **Note**: For detailed testnet deployment instructions, see the [Deploying Smart Contracts to Testnet](#deploying-smart-contracts-to-testnet) section below.
 
 Deploy to Mainnet (be careful!):
 ```bash
@@ -85,7 +101,7 @@ yarn start
 
 Visit `http://localhost:3000` and navigate to the **Avalanche Wallet** page to create or import a wallet.
 
-## 📱 Wallet Management
+## Wallet Management
 
 ### Creating a Wallet
 
@@ -128,7 +144,7 @@ To test your dApp on Fuji Testnet, you'll need testnet AVAX tokens. Here are the
 
 **Note**: Testnet AVAX has no monetary value and is only for testing purposes.
 
-## 🚀 Deploying Smart Contracts to Testnet
+## Deploying Smart Contracts to Testnet
 
 Follow these steps to deploy your smart contracts to Avalanche Fuji Testnet:
 
@@ -225,7 +241,7 @@ You can verify your deployment in two ways:
 - **Manual unlock in production** for security
 - Export seed phrase with confirmation modal
 
-## 🛠️ Available Commands
+## Available Commands
 
 ### Avalanche Node Management
 
@@ -256,7 +272,7 @@ You can verify your deployment in two ways:
 | `yarn format` | Format code |
 | `yarn lint` | Lint code |
 
-## 🏗️ Architecture
+## Architecture
 
 ### WDK Integration
 
@@ -297,7 +313,7 @@ avax-tether-wdk-starter/
 └── README.md                 # This file
 ```
 
-## 🔌 Custom Hooks
+## Custom Hooks
 
 ### Core WDK Hooks
 
@@ -341,7 +357,7 @@ await writeContractAsync({
 });
 ```
 
-## 🌐 Network Configuration
+## Network Configuration
 
 Networks are configured in `packages/nextjs/config/networks.ts`:
 
@@ -362,7 +378,7 @@ Networks are configured in `packages/nextjs/config/networks.ts`:
 }
 ```
 
-## 🔒 Security Best Practices
+## Security Best Practices
 
 1. **Never commit seed phrases or private keys**
 2. **Always use test networks for development**
@@ -379,7 +395,7 @@ Networks are configured in `packages/nextjs/config/networks.ts`:
 - Auto-unlock in dev mode only
 - Export requires explicit user confirmation
 
-## 🧪 Testing
+## Testing
 
 ### Contract Tests
 
@@ -395,7 +411,7 @@ cd packages/nextjs
 yarn test
 ```
 
-## 📝 Environment Variables
+## Environment Variables
 
 Create a `.env.local` file in `packages/nextjs/`:
 
@@ -408,7 +424,7 @@ NEXT_PUBLIC_NETWORK=local
 DEPLOYER_SEED_PHRASE=your_test_seed_phrase_here
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Frontend Deployment
 
@@ -432,9 +448,9 @@ yarn deploy:mainnet
 # ⚠️ Only use after thorough testing on testnet!
 ```
 
-For step-by-step testnet deployment instructions, refer to the [Deploying Smart Contracts to Testnet](#-deploying-smart-contracts-to-testnet) section above.
+For step-by-step testnet deployment instructions, refer to the [Deploying Smart Contracts to Testnet](#deploying-smart-contracts-to-testnet) section above.
 
-## 📚 Documentation
+## Documentation
 
 - [Scaffold-ETH 2 Docs](https://docs.scaffoldeth.io)
 - [Avalanche Docs](https://docs.avax.network)
@@ -442,15 +458,11 @@ For step-by-step testnet deployment instructions, refer to the [Deploying Smart 
 - [Hardhat Docs](https://hardhat.org/docs)
 - [Next.js Docs](https://nextjs.org/docs)
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
-
-This project is licensed under the MIT License.
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 This starter kit is built with love by [Dojo Coding](https://dojocoding.io) and stands on the shoulders of amazing open source projects:
 
@@ -463,3 +475,11 @@ We're grateful to the open source community for making projects like this possib
 ---
 
 **Happy Building on Avalanche! 🏔️**
+
+## License
+
+This project is licensed under the [MIT License](LICENCE). Built by [Dojo Coding](https://dojocoding.io).
+
+<p align="center">
+  <a href="https://dojocoding.io"><img src="docs/assets/dojocoding-mark.png" alt="Dojo Coding" width="48"></a>
+</p>

@@ -1,0 +1,12 @@
+name = "WDK Avalanche Starter"
+tagline = "Avalanche dApps with a [Tether WDK] wallet"
+chips = ["Local / Fuji / Mainnet"]
+meta = "Open source · TypeScript"
+tile = "</>"
+
+[card]
+kind = "terminal"
+label = "Yarn"
+status = "MIT"
+lines = ["yarn avalanche:up", "yarn deploy:local", "yarn start"]
+dim = "localhost:3000/wallet"
